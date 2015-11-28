@@ -1,2 +1,2 @@
-# FlatOut2_ultimateshaders
-New shaders for FO2 on HLSL
+# FlatOut 2 Ultimate Shaders
+New HLSL shaders for FlatOut 2
