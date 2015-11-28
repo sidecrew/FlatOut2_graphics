@@ -1,0 +1,85 @@
+const string inputStreamFormat = "PosprojTex4";
+
+///////////////////////////////////////////////////////////////////////////
+//	Inputs
+///////////////////////////////////////////////////////////////////////////
+
+// source textures (post-process buffers)
+Texture Tex0;
+Texture Tex1;
+Texture Tex2;
+Texture Tex3;
+
+///////////////////////////////////////////////////////////////////////////
+//	Input sampler (from post-process buffer)
+///////////////////////////////////////////////////////////////////////////
+sampler2D g_sampler0 =
+sampler_state
+{
+    Texture = <Tex0>;
+    AddressU = Clamp;
+    AddressV = Clamp;
+	  AddressW = Clamp;
+    MinFilter = Anisotropic;
+    MagFilter = Anisotropic;
+    MipFilter = Anisotropic;
+};
+
+sampler2D g_sampler1 =
+sampler_state
+{
+    Texture = <Tex1>;
+    AddressU = Clamp;
+    AddressV = Clamp;
+	  AddressW = Clamp;
+    MinFilter = Anisotropic;
+    MagFilter = Anisotropic;
+    MipFilter = Anisotropic;
+};
+
+sampler2D g_sampler2 =
+sampler_state
+{
+    Texture = <Tex2>;
+    AddressU = Clamp;
+    AddressV = Clamp;
+	  AddressW = Clamp;
+    MinFilter = Anisotropic;
+    MagFilter = Anisotropic;
+    MipFilter = Anisotropic;
+};
+
+sampler2D g_sampler3 =
+sampler_state
+{
+    Texture = <Tex3>;
+    AddressU = Clamp;
+    AddressV = Clamp;
+	  AddressW = Clamp;
+    MinFilter = Anisotropic;
+    MagFilter = Anisotropic;
+    MipFilter = Anisotropic;
+};
+
+
+///////////////////////////////////////////////////////////////////////////
+//Post-Process Shader
+///////////////////////////////////////////////////////////////////////////
+float4 PostProcessNEW( float2 Tex0 : TEXCOORD0, float2 Tex1 : TEXCOORD1, float2 Tex2 : TEXCOORD2, float2 Tex3 : TEXCOORD3 ) : COLOR
+{
+	float4 color;
+	color.rgba = (tex2D( g_sampler0, Tex0 ) + tex2D( g_sampler1, Tex1 ) + tex2D( g_sampler2, Tex2 ) + tex2D( g_sampler3, Tex3 )) * 0.24f;
+	return color;
+}
+	
+///////////////////////////////////////////////////////////////////////////
+//	Technique
+///////////////////////////////////////////////////////////////////////////
+technique PostProcess
+{
+    pass p0
+    {
+        VertexShader = null;
+        PixelShader = compile ps_1_1 PostProcessNEW();
+    }
+}
