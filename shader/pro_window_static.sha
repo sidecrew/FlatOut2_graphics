@@ -1,0 +1,100 @@
+Texture	Tex0;
+Texture	Tex1;
+
+const string inputStreamFormat = "PosNormColorTex1";
+
+vertexshader vSdr = 
+	decl
+	{
+		stream 0;
+		float    	v0[3];  // Position
+		float	 	v1[3];	// Normal
+		D3DCOLOR 	v2;		// Diffuse			
+		float   	v3[2];  // Tex coord 0
+	}
+	asm
+	{
+        ; Constants:
+        ;  0..3 - Composite World-View-Projection Matrix
+		vs.1.1
+			
+		dcl_position	v0
+		dcl_normal		v1
+		dcl_color		v2	
+		dcl_texcoord	v3
+		
+		m4x4	oPos, v0, c0
+		mov		oD0, v2
+		mov		oT0.xy, v3.xy
+		
+		;--- Compute vtx->eye vector V
+		m4x4	r4, v0, c4				; -> world
+		sub		r3.xyz, c8, r4
+
+		;--- Reflect around normal N (v1), R=V-(2V.N)N
+		dp3		r2.w, r3.xyz, v1.xyz
+		add		r2.w, r2.w, r2.w
+		mul		r0.xyz, v1.xyz, r2.w
+		sub		r1, r3.xyz, r0.xyz
+
+		;--- Output reflection cubemap texcoord
+		mov		oT1.xyz, -r1.xyz
+			
+		; Normalize V
+		dp3		r2.w, r3.xyz, r3.xyz
+		rsq		r2.w, r2.w	
+		mul		r3.xyz, r3.xyz, r2.w	
+		
+		//
+		// Compute fresnel term approximation
+		// f = r(0) + (1.0-R(0)) * pow(1.0 - dot(eye, normal), 5.0 );
+		//
+		; dot(eye, normal)
+		dp3		r0.w, r3.xyz, v1.xyz
+		; abs(r0)
+		max		r0.w, r0.w, -r0.w
+		; complement: r0 = 1 - r0
+		add		r0.w, c15.z, -r0.w
+		mul		r1.w, r0.w, r0.w	; squared
+		mul		r1.w, r1.w, r1.w	; quartic
+		mul		r1.w, r1.w, r0.w	; quintic
+
+;		mad		oD0.a, r1.w, c32.y, c32.x		
+		mad		r1.w, r1.w, c32.y, c32.x		
+		mov		oD0.a, r1.w
+		
+		// Specular color (per-pixel specular lookup from cubemap), multiply by fresnel
+;		mul		oD1, r1.w, c22			
+		mov		oD1, c22					; NOT multiplied by fresnel
+		
+	};
+
+pixelshader pSdr =
+	asm
+	{
+		ps.1.1
+
+		tex			t0
+		tex			t1
+		
+		mul_x2_sat	r0.rgb, t0, v0
+		+mul		r0.a, t0.a, v0.a
+		lrp			r0.rgb, r0.a, t1, r0		; interpolate base->reflection by fresnel		
+		mul			r1.a, t0.a, t1.a
+		mad_sat		r0.rgb, v1, r1.a, r0		; add specular (per-pixel, with cubemap lookup)
+		+add_sat	r0.a, r0.a, r1.a			; specular adds reflection strength (otherwise hilight not visible with alpha blend)
+	};
+
+Technique T0
+{
+    Pass P0
+    {        
+		Texture[0] = <Tex0>;
+		Texture[1] = <Tex1>;
+		
+		VertexShaderConstantF[32] = float4( 0.4f, 0.625f, 1.0f, 0.0f );   // R0, 1-R1, specular power, ?	
+		
+		VertexShader = <vSdr>;
+		PixelShader = <pSdr>;
+	}
+}
